@@ -1,0 +1,11 @@
+{
+  "name": "Lord of the Rina – Family Travel Companion",
+  "short_name": "Rina",
+  "start_url": "/",
+  "display": "standalone",
+  "dir": "rtl",
+  "lang": "he",
+  "background_color": "#FBF4EA",
+  "theme_color": "#C8553D",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
