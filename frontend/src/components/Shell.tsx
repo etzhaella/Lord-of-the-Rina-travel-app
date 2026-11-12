@@ -40,6 +40,7 @@ export function TopBar({ title, back }: { title?: string; back?: string }) {
           <span>{member?.emoji ?? "🙂"}</span>
         </Link>
       </header>
+      <div className="garland" aria-hidden />
       {config?.mock && <div className="demo-banner">מצב הדגמה – אין מפתח Google Places, מוצגים מקומות לדוגמה</div>}
     </>
   );

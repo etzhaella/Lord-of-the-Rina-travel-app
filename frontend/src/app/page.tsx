@@ -2,11 +2,18 @@
 
 import Link from "next/link";
 import { useApp } from "@/components/AppProvider";
+import ColmarScene from "@/components/ColmarScene";
 import HotelCard from "@/components/HotelCard";
 import LocationStrip from "@/components/LocationStrip";
 import { BottomNav, TopBar } from "@/components/Shell";
 import { CATEGORIES, subEmoji } from "@/lib/categories";
 import { distanceKm, formatDistance } from "@/lib/geo";
+
+const FACADE: Record<string, string> = {
+  food: "facade-salmon",
+  entertainment: "facade-teal",
+  christmas: "facade-fir",
+};
 
 export default function Home() {
   const { member, favorites, destinations, origin, navigateTo } = useApp();
@@ -17,8 +24,14 @@ export default function Home() {
       <TopBar />
       <main className="page">
         <section className="hero">
-          <p className="hello">שלום {member?.name ?? ""} {member?.emoji}</p>
-          <h1>לאן הולכים היום?</h1>
+          <ColmarScene />
+          <div className="hero-text">
+            <p className="hello">
+              שלום {member?.name ?? ""} {member?.emoji}
+            </p>
+            <h1>לאן הולכים היום?</h1>
+            <p className="bienvenue">Bienvenue à Colmar ✦</p>
+          </div>
         </section>
 
         <LocationStrip />
@@ -26,16 +39,24 @@ export default function Home() {
 
         <div className="tiles">
           {CATEGORIES.map((c) => (
-            <Link key={c.slug} href={`/category/${c.slug}`} className={`tile ${c.className}`}>
-              <span className="tile-emoji">{c.emoji}</span>
-              <strong>{c.title}</strong>
-              <small>{c.he}</small>
+            <Link key={c.slug} href={`/category/${c.slug}`} className="tile-wrap">
+              <div className={`tile ${FACADE[c.slug] ?? ""}`}>
+                <span className="tile-window">{c.emoji}</span>
+                <span className="tile-sign">
+                  <strong>{c.title}</strong>
+                  <small>{c.he}</small>
+                </span>
+              </div>
             </Link>
           ))}
-          <Link href="/favorites" className="tile tile-fav">
-            <span className="tile-emoji">❤️</span>
-            <strong>Favorites</strong>
-            <small>{favorites.length ? `${favorites.length} מקומות שמורים` : "מועדפים"}</small>
+          <Link href="/favorites" className="tile-wrap">
+            <div className="tile facade-mustard">
+              <span className="tile-window">❤️</span>
+              <span className="tile-sign">
+                <strong>Favorites</strong>
+                <small>{favorites.length ? `${favorites.length} מקומות שמורים` : "מועדפים"}</small>
+              </span>
+            </div>
           </Link>
         </div>
 
@@ -72,11 +93,18 @@ export default function Home() {
         </section>
 
         <footer className="dedication">
-          <span className="heart">❤</span>
+          <span className="ornament" aria-hidden>
+            ❄ ✦ ❄
+          </span>
+          <span className="heart">🥨</span>
           <p>
-            האפליקציה נבנתה כמחווה לזכרה של <b>רינה</b>,<br />
-            כדי לעזור למשפחה ליצור חוויות וזיכרונות משותפים בטיולים.
+            <b>ההלויז יוצאים לטייל בקולמר!</b>
+            <br />
+            צפויים: עצירות קפה במקומות מיוחדים, 700 תמונות
+            <br />
+            ואין ספור זיכרונות.
           </p>
+          <small className="joyeux">Joyeux Noël · Bonne route</small>
         </footer>
       </main>
       <BottomNav />
