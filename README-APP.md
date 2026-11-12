@@ -52,5 +52,19 @@ browser ──► Next.js 14 (TypeScript)  ──/api/* proxy──►  FastAPI 
 ## Google Places API
 ב-Google Cloud Console מפעילים את **Places API (New)**, יוצרים API key ומגבילים אותו ל-Places API.
 
-## פריסה ל-Google Cloud Run
-ראו `deploy/cloudrun.sh`: Cloud SQL Postgres, Secret Manager, ושני שירותי Cloud Run. שני ה-Dockerfiles מאזינים ל-`$PORT`.
+## פריסה לאוויר (Google Cloud Run + Neon, בחינם)
+
+**הכנה (פעם אחת):**
+1. מתקינים את [Google Cloud CLI](https://cloud.google.com/sdk/docs/install), ואז ב-PowerShell:
+   `gcloud auth login`
+2. ב-[console.cloud.google.com](https://console.cloud.google.com) יוצרים פרויקט ומחברים אליו חיוב (Billing), ואז:
+   `gcloud config set project <PROJECT_ID>`
+3. ב-[neon.tech](https://neon.tech) נרשמים, יוצרים פרויקט ומעתיקים את ה-Connection string (`postgresql://...`).
+
+**הרצה מתיקיית הפרויקט ב-PowerShell:**
+```powershell
+powershell -ExecutionPolicy Bypass -File deploy\1-setup.ps1            # פעם אחת: מפעיל שירותים ושומר את מחרוזת ה-DB
+powershell -ExecutionPolicy Bypass -File deploy\2-deploy.ps1           # מעלה לאוויר; מריצים שוב אחרי כל שינוי
+powershell -ExecutionPolicy Bypass -File deploy\3-add-google-key.ps1   # כשיש מפתח Google, מחבר אותו בלי פריסה מחדש
+```
+בסוף `2-deploy` מודפסת הכתובת של האפליקציה (`https://rina-frontend-....run.app`). פותחים אותה בטלפון ומוסיפים למסך הבית.

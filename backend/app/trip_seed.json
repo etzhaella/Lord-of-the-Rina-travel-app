@@ -1,0 +1,122 @@
+{
+  "_comment": "Colmar trip plan (25-29 Nov 2026). Loaded once into an empty database. Coordinates are approximate; with a Google Places key the app refines them (exact point, photo, rating) on startup.",
+  "hotel": {
+    "name": "Hôtel Maison Turenne",
+    "address": "10 Route de Bâle, 68000 Colmar",
+    "lat": 48.0733,
+    "lng": 7.3608,
+    "check_in": "2026-11-25",
+    "check_out": "2026-11-29",
+    "notes": "חניה ומרחק הליכה קצר לוונציה הקטנה ולשווקים"
+  },
+  "destinations": [
+    {
+      "name": "Carrefour Colmar Houssen",
+      "address": "Houssen, 68125",
+      "lat": 48.1255,
+      "lng": 7.3738,
+      "category": null,
+      "planned_date": "2026-11-25",
+      "notes": "אחרי הצ׳ק-אין: מים, נשנושים לרכב, פירות, גבינת מונסטר, קוגלהופף וריסלינג"
+    },
+    {
+      "name": "שוק חג המולד – ונציה הקטנה",
+      "address": "Place des Six Montagnes Noires, 68000 Colmar",
+      "lat": 48.0727,
+      "lng": 7.3585,
+      "category": "christmas",
+      "planned_date": "2026-11-25",
+      "notes": "ערב ראשון בלי מסעדה: יין חם, בריצל וטעימות מהדוכנים"
+    },
+    {
+      "name": "Château du Haut-Kœnigsbourg",
+      "address": "67600 Orschwiller",
+      "lat": 48.2495,
+      "lng": 7.3446,
+      "category": "attractions",
+      "planned_date": "2026-11-26",
+      "notes": "להגיע מוקדם, לפני האוטובוסים"
+    },
+    {
+      "name": "Riquewihr",
+      "address": "68340 Riquewihr",
+      "lat": 48.1667,
+      "lng": 7.2981,
+      "category": "attractions",
+      "planned_date": "2026-11-26",
+      "notes": "טעימות יין באחד היקבים ליד ריקוויר 🍷"
+    },
+    {
+      "name": "Wistub Brenner",
+      "address": "1 Rue Turenne, 68000 Colmar",
+      "lat": 48.0739,
+      "lng": 7.3597,
+      "category": "dinner",
+      "planned_date": "2026-11-26",
+      "notes": "ארוחת הערב הטובה של הטיול. להזמין מראש ל-19:00–20:00. טארט פלמבה, שוקרוט, בקהאופה"
+    },
+    {
+      "name": "שוק חג המולד – Place des Dominicains",
+      "address": "Place des Dominicains, 68000 Colmar",
+      "lat": 48.0789,
+      "lng": 7.3566,
+      "category": "christmas",
+      "planned_date": "2026-11-27",
+      "notes": "ערב שווקים במקום ארוחה: פלמבה, גבינות וקינוחים"
+    },
+    {
+      "name": "שוק חג המולד – שטרסבורג (Place Broglie)",
+      "address": "Place Broglie, 67000 Strasbourg",
+      "lat": 48.5845,
+      "lng": 7.7487,
+      "category": "christmas",
+      "planned_date": "2026-11-28",
+      "notes": "מהשווקים הגדולים באירופה. לא להזמין מסעדה, לאכול בשוק"
+    },
+    {
+      "name": "שיט בשטרסבורג – Batorama",
+      "address": "Rue de Rohan, 67000 Strasbourg",
+      "lat": 48.5806,
+      "lng": 7.7518,
+      "category": "attractions",
+      "planned_date": "2026-11-28",
+      "notes": "עלייה ליד ארמון רוהאן"
+    },
+    {
+      "name": "Ribeauvillé",
+      "address": "68150 Ribeauvillé",
+      "lat": 48.195,
+      "lng": 7.319,
+      "category": "attractions",
+      "planned_date": null,
+      "notes": "שוק חג המולד מימי הביניים"
+    },
+    {
+      "name": "Eguisheim",
+      "address": "68420 Eguisheim",
+      "lat": 48.0428,
+      "lng": 7.306,
+      "category": "attractions",
+      "planned_date": null,
+      "notes": "כפר עגול ומקסים, 10 דקות מקולמר"
+    },
+    {
+      "name": "Au Koïfhus",
+      "address": "2 Place de l'Ancienne Douane, 68000 Colmar",
+      "lat": 48.0758,
+      "lng": 7.3589,
+      "category": "dinner",
+      "planned_date": null,
+      "notes": "חלופה: טארט פלמבה מצוינת, אווירה אלזסית"
+    },
+    {
+      "name": "Brasserie Schwendi",
+      "address": "23-25 Grand Rue, 68000 Colmar",
+      "lat": 48.0752,
+      "lng": 7.3579,
+      "category": "dinner",
+      "planned_date": null,
+      "notes": "חלופה: מנות גדולות, מחירים נוחים"
+    }
+  ]
+}

@@ -17,6 +17,15 @@ from sqlalchemy.orm import Mapped, mapped_column
 from .db import Base
 
 
+class AppMeta(Base):
+    """Small key/value table, e.g. to remember the trip plan was loaded."""
+
+    __tablename__ = "app_meta"
+
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    value: Mapped[str] = mapped_column(String(255))
+
+
 class Member(Base):
     __tablename__ = "members"
 

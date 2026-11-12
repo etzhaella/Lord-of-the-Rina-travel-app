@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 import time
@@ -14,6 +15,7 @@ from sqlalchemy.orm import Session
 
 from . import places
 from .db import Base, SessionLocal, engine, get_db
+from .seed import load_trip_plan, refine_locations
 from .models import Destination, Expense, Favorite, Hotel, Member
 from .schemas import (
     EXPENSE_CATEGORIES,
@@ -73,7 +75,14 @@ def startup() -> None:
         if not db.scalar(select(Member.id).limit(1)):
             db.add_all(Member(name=n, emoji=e, color=c) for n, e, c in DEFAULT_MEMBERS)
             db.commit()
+    load_trip_plan()
     log.info("ready. demo mode=%s", places.MOCK)
+
+
+@app.on_event("startup")
+async def refine_in_background() -> None:
+    # exact coordinates + photos from Google, without delaying startup
+    asyncio.create_task(refine_locations())
 
 
 # ------------------------------------------------------------------ misc
