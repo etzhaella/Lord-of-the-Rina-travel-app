@@ -67,4 +67,13 @@ powershell -ExecutionPolicy Bypass -File deploy\1-setup.ps1            # פעם 
 powershell -ExecutionPolicy Bypass -File deploy\2-deploy.ps1           # מעלה לאוויר; מריצים שוב אחרי כל שינוי
 powershell -ExecutionPolicy Bypass -File deploy\3-add-google-key.ps1   # כשיש מפתח Google, מחבר אותו בלי פריסה מחדש
 ```
+### פריסה אוטומטית מהריפו (מומלץ)
+כל `git push` ל-`main` בונה את האפליקציה ומעלה אותה לאוויר לבד, לפי `cloudbuild.yaml`.
+
+1. פעם אחת: `powershell -ExecutionPolicy Bypass -File deploy\4-setup-cicd.ps1` (אחרי `1-setup`)
+2. ב-Console: **Cloud Build → Triggers → Connect repository** ובוחרים GitHub ואת הריפו.
+3. **Create trigger:** שם `deploy-main`, אזור `europe-west1`, Event: *Push to a branch*, Branch: `^main$`,
+   Configuration: *Cloud Build configuration file*, נתיב `cloudbuild.yaml`, ו-Service account: ה-Compute default.
+4. **Run** על הטריגר (או `git push`). הלוג נמצא ב-Cloud Build → History, ובסוף שלב `deploy-frontend` מודפסת הכתובת.
+
 בסוף `2-deploy` מודפסת הכתובת של האפליקציה (`https://rina-frontend-....run.app`). פותחים אותה בטלפון ומוסיפים למסך הבית.

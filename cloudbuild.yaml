@@ -1,0 +1,82 @@
+# CI/CD: every push to main -> build both images -> deploy to Cloud Run.
+# Hook it up once with a Cloud Build trigger (see README-APP.md, "פריסה אוטומטית מהריפו").
+# Manual run from the project folder:  gcloud builds submit --config cloudbuild.yaml
+
+substitutions:
+  _REGION: europe-west1
+  _REPO: rina
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+steps:
+  # ---------------- backend
+  - id: build-backend
+    name: gcr.io/cloud-builders/docker
+    waitFor: ["-"]
+    args: ["build", "-t", "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/backend:$BUILD_ID", "./backend"]
+
+  - id: push-backend
+    name: gcr.io/cloud-builders/docker
+    waitFor: ["build-backend"]
+    args: ["push", "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/backend:$BUILD_ID"]
+
+  - id: deploy-backend
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    waitFor: ["push-backend"]
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -e
+        secrets="DATABASE_URL=db-url:latest"
+        if gcloud secrets describe places-key >/dev/null 2>&1; then
+          secrets="$$secrets,GOOGLE_PLACES_API_KEY=places-key:latest"
+          echo "Google Places key found"
+        else
+          echo "No Google Places key yet - demo mode"
+        fi
+        gcloud run deploy rina-backend \
+          --image ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/backend:$BUILD_ID \
+          --region ${_REGION} \
+          --allow-unauthenticated \
+          --set-secrets "$$secrets" \
+          --set-env-vars DEFAULT_CURRENCY=EUR,PLACES_LANGUAGE=en \
+          --memory 512Mi \
+          --quiet
+        gcloud run services describe rina-backend --region ${_REGION} --format='value(status.url)' > /workspace/backend_url
+        echo "Backend: $$(cat /workspace/backend_url)"
+
+  # ---------------- frontend (builds in parallel with the backend)
+  - id: build-frontend
+    name: gcr.io/cloud-builders/docker
+    waitFor: ["-"]
+    args: ["build", "-t", "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/frontend:$BUILD_ID", "./frontend"]
+
+  - id: push-frontend
+    name: gcr.io/cloud-builders/docker
+    waitFor: ["build-frontend"]
+    args: ["push", "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/frontend:$BUILD_ID"]
+
+  - id: deploy-frontend
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    waitFor: ["push-frontend", "deploy-backend"]
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -e
+        gcloud run deploy rina-frontend \
+          --image ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/frontend:$BUILD_ID \
+          --region ${_REGION} \
+          --allow-unauthenticated \
+          --set-env-vars "BACKEND_URL=$$(cat /workspace/backend_url)" \
+          --memory 512Mi \
+          --quiet
+        echo "App: $$(gcloud run services describe rina-frontend --region ${_REGION} --format='value(status.url)')"
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/backend:$BUILD_ID
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/frontend:$BUILD_ID
+
+timeout: 1800s
