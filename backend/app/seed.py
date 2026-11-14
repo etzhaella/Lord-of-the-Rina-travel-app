@@ -106,15 +106,15 @@ async def refine_locations() -> None:
         for row in rows:
             query = f"{row.name}, {row.address}" if row.address else row.name
             try:
-                found = await places.text_search(query, row.lat, row.lng)
+                found = await places.text_search(query, row.lat, row.lng)  # bias only if known
             except Exception as e:  # network / quota: try again next startup
                 log.warning("refine failed for %s: %s", row.name, e)
                 continue
             if not found:
                 continue
             best = found[0]
-            # only accept a match close to where we expected it
-            if haversine_km(row.lat, row.lng, best.lat, best.lng) > 5:
+            # only accept a match close to where we expected it (when we know where that is)
+            if row.lat is not None and row.lng is not None and haversine_km(row.lat, row.lng, best.lat, best.lng) > 5:
                 log.info("skip refine for %s: best match too far (%s)", row.name, best.name)
                 continue
             row.lat, row.lng, row.place_id = best.lat, best.lng, best.place_id

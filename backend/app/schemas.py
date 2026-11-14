@@ -106,8 +106,8 @@ class HotelOut(ORM):
 class DestinationIn(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     address: str | None = None
-    lat: float
-    lng: float
+    lat: float | None = None
+    lng: float | None = None
     place_id: str | None = None
     photo_name: str | None = None
     rating: float | None = None
@@ -119,6 +119,13 @@ class DestinationIn(BaseModel):
 
 class DestinationPatch(BaseModel):
     name: str | None = None
+    address: str | None = None
+    lat: float | None = None
+    lng: float | None = None
+    place_id: str | None = None
+    photo_name: str | None = None
+    rating: float | None = None
+    category: str | None = None
     planned_date: date | None = None
     notes: str | None = None
     visited: bool | None = None
@@ -128,8 +135,8 @@ class DestinationOut(ORM):
     id: int
     name: str
     address: str | None
-    lat: float
-    lng: float
+    lat: float | None
+    lng: float | None
     place_id: str | None
     photo_name: str | None
     rating: float | None
@@ -222,3 +229,13 @@ class ExpenseSummary(BaseModel):
     by_member: list[TotalRow]
     by_category: list[TotalRow]
     by_day: list[TotalRow]
+
+
+class HiddenPlaceIn(BaseModel):
+    place_id: str
+    name: str
+    category: str | None = None
+
+
+class HiddenPlaceOut(ORM, HiddenPlaceIn):
+    pass

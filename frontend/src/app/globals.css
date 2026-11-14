@@ -1627,3 +1627,73 @@ button.icon-btn:hover {
   white-space: nowrap;
   font-size: 10.5px;
 }
+
+/* ------------------------------------------------------------ own places in a category */
+.own-places {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: var(--radius);
+  background: linear-gradient(160deg, #fffbf4, #f7ecdc);
+  border: 1.5px dashed rgba(212, 162, 76, 0.8);
+}
+
+.own-empty {
+  width: 100%;
+  font: inherit;
+  cursor: pointer;
+}
+
+.own-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.own-item.visited {
+  opacity: 0.6;
+}
+
+.own-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.own-name {
+  unicode-bidi: plaintext;
+}
+
+.google-head {
+  margin-top: 6px;
+}
+
+.loc-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 12px;
+  background: #fbf3e6;
+}
+
+.loc-ok {
+  color: var(--olive);
+  font-weight: 500;
+}
+
+.danger-outline {
+  color: var(--berry);
+  border-color: #f0c3c8;
+}
+
+.mini-nav .btn-gmaps {
+  font-size: 0;
+}
+
+.mini-nav .btn-gmaps::before {
+  content: "🗺️";
+  font-size: 14px;
+}

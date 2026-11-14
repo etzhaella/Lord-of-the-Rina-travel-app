@@ -21,7 +21,15 @@ export function Photo({ name, category, alt }: { name?: string | null; category?
   return <img className="photo" src={src} alt={alt} loading="lazy" onError={() => setFailed(true)} />;
 }
 
-export default function PlaceCard({ place, category }: { place: Place; category?: string }) {
+export default function PlaceCard({
+  place,
+  category,
+  onHide,
+}: {
+  place: Place;
+  category?: string;
+  onHide?: () => void;
+}) {
   const { origin, isFavorite, toggleFavorite, isDestination, addDestination, openExpense, toast } = useApp();
   const fav = isFavorite(place.place_id);
   const planned = isDestination(place.place_id);
@@ -74,6 +82,11 @@ export default function PlaceCard({ place, category }: { place: Place; category?
           <button className="btn btn-ghost sm" onClick={() => openExpense({ place_name: place.name, category: "food" })}>
             💳 רשום הוצאה
           </button>
+          {onHide && (
+            <button className="btn btn-ghost sm" onClick={onHide} aria-label={`הסתר את ${place.name}`}>
+              🙈 הסתר
+            </button>
+          )}
         </div>
       </div>
     </article>

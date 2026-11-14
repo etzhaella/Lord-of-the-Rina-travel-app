@@ -50,8 +50,8 @@ export type Destination = {
   id: number;
   name: string;
   address?: string | null;
-  lat: number;
-  lng: number;
+  lat: number | null;
+  lng: number | null;
   place_id?: string | null;
   photo_name?: string | null;
   rating?: number | null;

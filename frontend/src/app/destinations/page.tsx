@@ -2,18 +2,20 @@
 
 import { useState } from "react";
 import { useApp } from "@/components/AppProvider";
+import DestinationEditor from "@/components/DestinationEditor";
 import { Photo } from "@/components/PlaceCard";
 import NavButtons from "@/components/NavButtons";
 import PlaceSearch from "@/components/PlaceSearch";
 import { BottomNav, OriginToggle, TopBar } from "@/components/Shell";
 import { api } from "@/lib/api";
-import { distanceKm, formatDistance, travelLine } from "@/lib/geo";
+import { subEmoji, subLabel } from "@/lib/categories";
+import { distanceOrNull, formatDistance, travelLine } from "@/lib/geo";
 import type { Destination } from "@/lib/types";
 
 export default function DestinationsPage() {
   const { destinations, reloadDestinations, addDestination, origin, members, navigateTo, toast } = useApp();
   const [showVisited, setShowVisited] = useState(false);
-  const [editing, setEditing] = useState<number | null>(null);
+  const [editing, setEditing] = useState<Destination | "new" | null>(null);
 
   const todo = destinations.filter((d) => !d.visited);
   const done = destinations.filter((d) => d.visited);
@@ -39,11 +41,13 @@ export default function DestinationsPage() {
     await reloadDestinations();
   };
 
-  const nearest =
-    origin && todo.length ? [...todo].sort((a, b) => distanceKm(origin, a) - distanceKm(origin, b))[0] : null;
+  const located = todo.filter((d) => distanceOrNull(origin, d) != null);
+  const nearest = located.length
+    ? [...located].sort((a, b) => distanceOrNull(origin, a)! - distanceOrNull(origin, b)!)[0]
+    : null;
 
   const renderItem = (d: Destination, idx: number, list: Destination[]) => {
-    const km = origin ? distanceKm(origin, d) : null;
+    const km = distanceOrNull(origin, d);
     const by = d.added_by ? memberById.get(d.added_by) : null;
     return (
       <li key={d.id} className={`card dest ${d.visited ? "visited" : ""}`}>
@@ -53,7 +57,12 @@ export default function DestinationsPage() {
           </div>
           <div className="grow">
             <strong>{d.name}</strong>
-            {d.address && <small className="muted block">{d.address}</small>}
+            {d.address && <small className="muted block addr-line">{d.address}</small>}
+            {d.category && (
+              <small className="muted block">
+                {subEmoji(d.category)} {subLabel(d.category)}
+              </small>
+            )}
             <small className="muted block">
               {km != null && `${formatDistance(km)} · ${travelLine(km)}`}
               {d.rating ? ` · ★ ${d.rating}` : ""}
@@ -83,42 +92,12 @@ export default function DestinationsPage() {
           )}
         </div>
 
-        {editing === d.id && (
-          <form
-            className="inline-edit"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              const fd = new FormData(e.currentTarget);
-              await patch(d.id, {
-                planned_date: (fd.get("planned_date") as string) || null,
-                notes: (fd.get("notes") as string) || null,
-              });
-              setEditing(null);
-            }}
-          >
-            <label className="field">
-              <span>מתי?</span>
-              <input type="date" name="planned_date" defaultValue={d.planned_date ?? ""} />
-            </label>
-            <label className="field">
-              <span>הערות</span>
-              <input name="notes" defaultValue={d.notes ?? ""} placeholder="להזמין כרטיסים מראש…" />
-            </label>
-            <div className="row-actions">
-              <button className="btn btn-primary sm">שמור</button>
-              <button type="button" className="btn btn-text sm" onClick={() => setEditing(null)}>
-                ביטול
-              </button>
-            </div>
-          </form>
-        )}
-
         <div className="actions">
-          <NavButtons lat={d.lat} lng={d.lng} name={d.name} placeId={d.place_id} small />
+          <NavButtons lat={d.lat} lng={d.lng} name={d.name} address={d.address} placeId={d.place_id} small />
           <button className="btn btn-ghost sm" onClick={() => patch(d.id, { visited: !d.visited })}>
             {d.visited ? "↩️ להחזיר" : "✅ ביקרנו"}
           </button>
-          <button className="btn btn-ghost sm" onClick={() => setEditing(editing === d.id ? null : d.id)}>
+          <button className="btn btn-ghost sm" onClick={() => setEditing(d)} aria-label="ערוך">
             ✏️
           </button>
           <button className="btn btn-ghost sm" onClick={() => remove(d.id)} aria-label="הסר">
@@ -140,14 +119,18 @@ export default function DestinationsPage() {
           onPick={(p) => addDestination(p).catch(() => toast("ההוספה נכשלה"))}
         />
 
+        <button className="btn btn-ghost" onClick={() => setEditing("new")}>
+          ✍️ הוספה ידנית (שם וכתובת)
+        </button>
+
         <OriginToggle />
 
         {nearest && (
-          <button className="card next-up" onClick={() => navigateTo(nearest.lat, nearest.lng, nearest.name)}>
+          <button className="card next-up" onClick={() => navigateTo(nearest.lat!, nearest.lng!, nearest.name)}>
             <small className="eyebrow">היעד הקרוב ביותר</small>
             <strong>{nearest.name}</strong>
             <span>
-              {formatDistance(distanceKm(origin!, nearest))} · נווט ב-Waze ›
+              {formatDistance(distanceOrNull(origin, nearest))} · נווט ב-Waze ›
             </span>
           </button>
         )}
@@ -167,6 +150,9 @@ export default function DestinationsPage() {
             </button>
             {showVisited && <ol className="dest-list">{done.map((d, i) => renderItem(d, i, done))}</ol>}
           </section>
+        )}
+        {editing && (
+          <DestinationEditor initial={editing === "new" ? null : editing} onClose={() => setEditing(null)} />
         )}
       </main>
       <BottomNav />

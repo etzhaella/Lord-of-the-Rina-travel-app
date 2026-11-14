@@ -4,11 +4,12 @@ import Link from "next/link";
 import { useApp } from "@/components/AppProvider";
 import ColmarScene from "@/components/ColmarScene";
 import HotelCard from "@/components/HotelCard";
+import NavButtons from "@/components/NavButtons";
 import LocationStrip from "@/components/LocationStrip";
 import { BottomNav, TopBar } from "@/components/Shell";
 import { CATEGORIES, subEmoji } from "@/lib/categories";
-import { distanceKm, formatDistance } from "@/lib/geo";
-import { googleMapsUrl } from "@/lib/navigate";
+import { distanceOrNull, formatDistance } from "@/lib/geo";
+
 
 const FACADE: Record<string, string> = {
   food: "facade-salmon",
@@ -17,7 +18,7 @@ const FACADE: Record<string, string> = {
 };
 
 export default function Home() {
-  const { member, favorites, destinations, origin, navigateTo } = useApp();
+  const { member, favorites, destinations, origin } = useApp();
   const upcoming = destinations.filter((d) => !d.visited).slice(0, 3);
 
   return (
@@ -80,23 +81,12 @@ export default function Home() {
                   <div className="grow">
                     <strong>{d.name}</strong>
                     <small className="muted">
-                      {origin ? formatDistance(distanceKm(origin, d)) : ""}
+                      {distanceOrNull(origin, d) != null ? formatDistance(distanceOrNull(origin, d)) : ""}
                       {d.planned_date ? ` · ${new Date(d.planned_date + "T00:00:00").toLocaleDateString("he-IL")}` : ""}
                     </small>
                   </div>
                   <div className="mini-nav">
-                    <button className="btn btn-waze sm" onClick={() => navigateTo(d.lat, d.lng, d.name)}>
-                      Waze
-                    </button>
-                    <a
-                      className="btn btn-gmaps sm"
-                      href={googleMapsUrl(d.lat, d.lng, d.place_id)}
-                      target="_blank"
-                      rel="noopener"
-                      aria-label={`Google Maps: ${d.name}`}
-                    >
-                      🗺️
-                    </a>
+                    <NavButtons lat={d.lat} lng={d.lng} name={d.name} address={d.address} placeId={d.place_id} small />
                   </div>
                 </li>
               ))}

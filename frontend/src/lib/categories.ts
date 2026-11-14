@@ -67,3 +67,8 @@ export const currencySymbol = (c: string) =>
 
 export const formatMoney = (amount: number, currency: string) =>
   `${currencySymbol(currency)}${amount.toLocaleString("he-IL", { maximumFractionDigits: 2 })}`;
+
+/** Every sub-category, for pickers. */
+export const ALL_SUBS = CATEGORIES.flatMap((c) => c.subs.map((s) => ({ ...s, category: c.slug })));
+
+export const subLabel = (key?: string | null) => ALL_SUBS.find((s) => s.key === key)?.label ?? "אחר";

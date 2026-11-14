@@ -9,14 +9,14 @@ import httpx
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, Response
-from sqlalchemy import select, update
+from sqlalchemy import select, text, update
 from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session
 
 from . import places
 from .db import Base, SessionLocal, engine, get_db
 from .seed import fix_hotel_location, load_trip_plan, refine_locations
-from .models import Destination, Expense, Favorite, HomeAddress, Hotel, Member
+from .models import Destination, Expense, Favorite, HiddenPlace, HomeAddress, Hotel, Member
 from .schemas import (
     EXPENSE_CATEGORIES,
     DestinationIn,
@@ -27,6 +27,8 @@ from .schemas import (
     ExpensePatch,
     ExpenseSummary,
     FavoriteIn,
+    HiddenPlaceIn,
+    HiddenPlaceOut,
     HomeAddressIn,
     HomeAddressOut,
     HomeAddressPatch,
@@ -62,6 +64,20 @@ DEFAULT_MEMBERS = [
 ]
 
 
+def migrate() -> None:
+    """Small in-place schema upgrades for databases created by older versions."""
+    stmts = [
+        "ALTER TABLE destinations ALTER COLUMN lat DROP NOT NULL",
+        "ALTER TABLE destinations ALTER COLUMN lng DROP NOT NULL",
+    ]
+    for sql in stmts:
+        try:
+            with engine.begin() as conn:
+                conn.execute(text(sql))
+        except Exception as e:  # already applied / not Postgres
+            log.info("migration skipped (%s): %s", sql, e.__class__.__name__)
+
+
 @app.on_event("startup")
 def startup() -> None:
     # Postgres may still be booting when the container starts
@@ -74,6 +90,7 @@ def startup() -> None:
             time.sleep(2)
     else:
         raise RuntimeError("database not reachable")
+    migrate()
     with SessionLocal() as db:
         if not db.scalar(select(Member.id).limit(1)):
             db.add_all(Member(name=n, emoji=e, color=c) for n, e, c in DEFAULT_MEMBERS)
@@ -115,6 +132,7 @@ async def places_nearby(
     min_rating: float = 0,
     price: str = "",  # e.g. "1,2"
     sort: str = "distance",  # distance | rating
+    db: Session = Depends(get_db),
 ):
     try:
         result = await places.nearby(category, lat, lng, radius_km)
@@ -123,6 +141,9 @@ async def places_nearby(
     except httpx.HTTPStatusError as e:
         log.error("places error %s %s", e.response.status_code, e.response.text[:300])
         raise HTTPException(502, "Google Places error")
+    hidden = set(db.scalars(select(HiddenPlace.place_id)).all())
+    if hidden:
+        result = [p for p in result if p.place_id not in hidden]
     prices = {int(p) for p in price.split(",") if p.strip().isdigit()}
     if min_rating:
         result = [p for p in result if (p.rating or 0) >= min_rating]
@@ -285,24 +306,50 @@ def list_destinations(db: Session = Depends(get_db)):
     ).all()
 
 
+async def _locate(d: Destination) -> None:
+    """Fill in coordinates for a place given only by name/address (needs a Google key)."""
+    if d.lat is not None and d.lng is not None or places.MOCK:
+        return
+    query = ", ".join(x for x in (d.name, d.address) if x)
+    try:
+        found = await places.text_search(query, None, None)
+    except Exception as e:
+        log.warning("geocode failed for %s: %s", query, e)
+        return
+    if found:
+        best = found[0]
+        d.lat, d.lng = best.lat, best.lng
+        d.place_id = d.place_id or best.place_id
+        d.address = d.address or best.address
+        d.photo_name = d.photo_name or best.photo_name
+        d.rating = d.rating or best.rating
+
+
 @app.post("/api/destinations", response_model=DestinationOut, status_code=201)
-def add_destination(body: DestinationIn, db: Session = Depends(get_db)):
+async def add_destination(body: DestinationIn, db: Session = Depends(get_db)):
     if body.place_id:
         dup = db.scalar(select(Destination).where(Destination.place_id == body.place_id))
         if dup:
             return dup
     last = db.scalar(select(Destination.sort_order).order_by(Destination.sort_order.desc()).limit(1))
     d = Destination(**body.model_dump(), sort_order=(last or 0) + 1)
+    await _locate(d)
     db.add(d)
     db.commit()
     return d
 
 
 @app.patch("/api/destinations/{did}", response_model=DestinationOut)
-def edit_destination(did: int, body: DestinationPatch, db: Session = Depends(get_db)):
+async def edit_destination(did: int, body: DestinationPatch, db: Session = Depends(get_db)):
     d = db.get(Destination, did) or _404()
-    for k, v in body.model_dump(exclude_unset=True).items():
+    changes = body.model_dump(exclude_unset=True)
+    for k, v in changes.items():
         setattr(d, k, v)
+    # address changed by hand without new coordinates -> forget the old point and look it up again
+    if "address" in changes and "lat" not in changes:
+        d.lat = d.lng = None
+        d.place_id = None
+    await _locate(d)
     db.commit()
     return d
 
@@ -319,6 +366,30 @@ def delete_destination(did: int, db: Session = Depends(get_db)):
     d = db.get(Destination, did) or _404()
     db.delete(d)
     db.commit()
+
+
+# ------------------------------------------------------------------ hidden suggestions
+@app.get("/api/hidden-places", response_model=list[HiddenPlaceOut])
+def list_hidden(db: Session = Depends(get_db)):
+    return db.scalars(select(HiddenPlace).order_by(HiddenPlace.created_at.desc())).all()
+
+
+@app.post("/api/hidden-places", response_model=HiddenPlaceOut, status_code=201)
+def hide_place(body: HiddenPlaceIn, db: Session = Depends(get_db)):
+    h = db.get(HiddenPlace, body.place_id)
+    if not h:
+        h = HiddenPlace(**body.model_dump())
+        db.add(h)
+        db.commit()
+    return h
+
+
+@app.delete("/api/hidden-places/{place_id:path}", status_code=204)
+def unhide_place(place_id: str, db: Session = Depends(get_db)):
+    h = db.get(HiddenPlace, place_id)
+    if h:
+        db.delete(h)
+        db.commit()
 
 
 # ------------------------------------------------------------------ home in Israel

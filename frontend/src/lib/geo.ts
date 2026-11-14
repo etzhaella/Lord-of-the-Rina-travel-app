@@ -53,3 +53,9 @@ export function parseLatLng(text: string): LatLng | null {
 }
 
 export const priceLabel = (p?: number | null) => (p == null ? "" : p === 0 ? "חינם" : "$".repeat(p));
+
+/** Distance when both points are known, else null. */
+export function distanceOrNull(a: LatLng | null, b: { lat: number | null; lng: number | null }): number | null {
+  if (!a || b.lat == null || b.lng == null) return null;
+  return distanceKm(a, { lat: b.lat, lng: b.lng });
+}

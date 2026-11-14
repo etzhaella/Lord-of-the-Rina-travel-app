@@ -117,8 +117,9 @@ class Destination(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(255))
     address: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    lat: Mapped[float] = mapped_column(Float)
-    lng: Mapped[float] = mapped_column(Float)
+    # may be empty for places added by name/address only (navigation then uses the address)
+    lat: Mapped[float | None] = mapped_column(Float, nullable=True)
+    lng: Mapped[float | None] = mapped_column(Float, nullable=True)
     place_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     photo_name: Mapped[str | None] = mapped_column(String(600), nullable=True)
     rating: Mapped[float | None] = mapped_column(Float, nullable=True)
@@ -130,4 +131,15 @@ class Destination(Base):
     added_by: Mapped[int | None] = mapped_column(
         ForeignKey("members.id", ondelete="SET NULL"), nullable=True
     )
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class HiddenPlace(Base):
+    """A Google suggestion the family chose to hide from the category lists."""
+
+    __tablename__ = "hidden_places"
+
+    place_id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    name: Mapped[str] = mapped_column(String(255))
+    category: Mapped[str | None] = mapped_column(String(40), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

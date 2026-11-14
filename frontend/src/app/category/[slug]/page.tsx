@@ -3,11 +3,14 @@
 import { notFound } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useApp } from "@/components/AppProvider";
+import CategoryOwnPlaces from "@/components/CategoryOwnPlaces";
 import PlaceCard from "@/components/PlaceCard";
 import { BottomNav, OriginToggle, TopBar } from "@/components/Shell";
 import { api } from "@/lib/api";
 import { getCategory } from "@/lib/categories";
 import type { Place } from "@/lib/types";
+
+type Hidden = { place_id: string; name: string; category?: string | null };
 
 const DISTANCES = [1, 5, 10, 20];
 const PRICES = [1, 2, 3, 4];
@@ -21,7 +24,34 @@ export default function CategoryPage({ params }: { params: { slug: string } }) {
 
 function CategoryView({ slug }: { slug: string }) {
   const cat = getCategory(slug)!;
-  const { origin, geoStatus } = useApp();
+  const { origin, geoStatus, toast } = useApp();
+  const [hidden, setHidden] = useState<Hidden[]>([]);
+  const [showHidden, setShowHidden] = useState(false);
+
+  useEffect(() => {
+    api<Hidden[]>("/hidden-places").then(setHidden).catch(() => {});
+  }, []);
+
+  const hidePlace = async (p: Place) => {
+    try {
+      const h = await api<Hidden>("/hidden-places", {
+        method: "POST",
+        json: { place_id: p.place_id, name: p.name, category: sub },
+      });
+      setHidden((hs) => [h, ...hs.filter((x) => x.place_id !== h.place_id)]);
+      setPlaces((ps) => (ps ? ps.filter((x) => x.place_id !== p.place_id) : ps));
+      toast("ההצעה הוסתרה 🙈");
+    } catch {
+      toast("לא הצלחנו להסתיר");
+    }
+  };
+
+  const unhide = async (h: Hidden) => {
+    await api(`/hidden-places/${encodeURIComponent(h.place_id)}`, { method: "DELETE" });
+    setHidden((hs) => hs.filter((x) => x.place_id !== h.place_id));
+    setRefresh((n) => n + 1);
+    toast(`"${h.name}" חזר לרשימה`);
+  };
   const [sub, setSub] = useState(cat.subs[0].key);
   const [radius, setRadius] = useState(5);
   const [prices, setPrices] = useState<number[]>([]);
@@ -29,6 +59,7 @@ function CategoryView({ slug }: { slug: string }) {
   const [sort, setSort] = useState<"distance" | "rating">("distance");
   const [places, setPlaces] = useState<Place[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [refresh, setRefresh] = useState(0);
 
   // ~100m rounding so walking around doesn't refetch constantly
   const oLat = origin ? origin.lat.toFixed(3) : null;
@@ -54,7 +85,7 @@ function CategoryView({ slug }: { slug: string }) {
     return () => {
       cancelled = true;
     };
-  }, [sub, radius, prices, minRating, sort, oLat, oLng]);
+  }, [sub, radius, prices, minRating, sort, oLat, oLng, refresh]);
 
   const togglePrice = (p: number) =>
     setPrices((ps) => (ps.includes(p) ? ps.filter((x) => x !== p) : [...ps, p].sort()));
@@ -74,6 +105,12 @@ function CategoryView({ slug }: { slug: string }) {
             ))}
           </div>
         )}
+
+        <CategoryOwnPlaces sub={sub} label={cat.subs.find((s) => s.key === sub)?.label ?? cat.title} />
+
+        <div className="section-head google-head">
+          <h2>✨ הצעות מגוגל</h2>
+        </div>
 
         <OriginToggle />
 
@@ -152,10 +189,32 @@ function CategoryView({ slug }: { slug: string }) {
             <p className="muted small count">{places.length} מקומות</p>
             <div className="list">
               {places.map((p) => (
-                <PlaceCard key={p.place_id} place={p} category={sub} />
+                <PlaceCard key={p.place_id} place={p} category={sub} onHide={() => hidePlace(p)} />
               ))}
             </div>
           </>
+        )}
+
+        {hidden.filter((h) => !h.category || h.category === sub).length > 0 && (
+          <section className="section">
+            <button className="btn btn-text" onClick={() => setShowHidden((v) => !v)}>
+              {showHidden ? "▾" : "▸"} 🙈 הצעות מוסתרות ({hidden.filter((h) => !h.category || h.category === sub).length})
+            </button>
+            {showHidden && (
+              <ul className="simple-list">
+                {hidden
+                  .filter((h) => !h.category || h.category === sub)
+                  .map((h) => (
+                    <li key={h.place_id} className="card">
+                      <span className="grow addr-line">{h.name}</span>
+                      <button className="btn btn-ghost sm" onClick={() => unhide(h)}>
+                        ↩️ החזר
+                      </button>
+                    </li>
+                  ))}
+              </ul>
+            )}
+          </section>
         )}
       </main>
       <BottomNav />
