@@ -3,8 +3,15 @@
 export const wazeWebUrl = (lat: number, lng: number) =>
   `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
 
-export const googleMapsUrl = (lat: number, lng: number) =>
-  `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+/**
+ * Google Maps directions. Opens the Google Maps app on phones (or the web on desktop).
+ * With a real Google place_id the destination is the exact place (name, entrance), not just a pin.
+ */
+export const googleMapsUrl = (lat: number, lng: number, placeId?: string | null) => {
+  let url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+  if (placeId && !placeId.startsWith("demo-")) url += `&destination_place_id=${encodeURIComponent(placeId)}`;
+  return url;
+};
 
 export const WAZE_STORE = {
   ios: "https://apps.apple.com/app/id323229106",

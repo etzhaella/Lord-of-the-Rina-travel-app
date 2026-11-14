@@ -6,6 +6,7 @@ import { subEmoji } from "@/lib/categories";
 import { distanceKm, formatDistance, priceLabel, travelLine } from "@/lib/geo";
 import type { Place } from "@/lib/types";
 import { useApp } from "./AppProvider";
+import NavButtons from "./NavButtons";
 
 export function Photo({ name, category, alt }: { name?: string | null; category?: string | null; alt: string }) {
   const [failed, setFailed] = useState(false);
@@ -21,7 +22,7 @@ export function Photo({ name, category, alt }: { name?: string | null; category?
 }
 
 export default function PlaceCard({ place, category }: { place: Place; category?: string }) {
-  const { origin, isFavorite, toggleFavorite, isDestination, addDestination, navigateTo, openExpense, toast } = useApp();
+  const { origin, isFavorite, toggleFavorite, isDestination, addDestination, openExpense, toast } = useApp();
   const fav = isFavorite(place.place_id);
   const planned = isDestination(place.place_id);
   const km = origin ? distanceKm(origin, place) : place.distance_km;
@@ -54,14 +55,15 @@ export default function PlaceCard({ place, category }: { place: Place; category?
         {km != null && <p className="travel">{travelLine(km)}</p>}
 
         <div className="actions">
-          <button className={`btn btn-fav ${fav ? "on" : ""}`} onClick={guard(() => toggleFavorite(place, category))}>
-            {fav ? "❤️ במועדפים" : "🤍 Save to Favorites"}
-          </button>
-          <button className="btn btn-waze" onClick={() => navigateTo(place.lat, place.lng, place.name)}>
-            🚗 Open in Waze
-          </button>
+          <NavButtons lat={place.lat} lng={place.lng} name={place.name} placeId={place.place_id} />
         </div>
         <div className="actions secondary">
+          <button
+            className={`btn btn-fav sm ${fav ? "on" : ""}`}
+            onClick={guard(() => toggleFavorite(place, category))}
+          >
+            {fav ? "❤️ במועדפים" : "🤍 Save to Favorites"}
+          </button>
           <button
             className={`btn btn-ghost sm ${planned ? "on" : ""}`}
             disabled={planned}

@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { distanceKm, formatDistance, travelLine } from "@/lib/geo";
 import { useApp } from "./AppProvider";
+import NavButtons from "./NavButtons";
 
 const fmtDate = (d?: string | null) =>
   d ? new Date(d + "T00:00:00").toLocaleDateString("he-IL", { day: "numeric", month: "short" }) : "";
 
 /** Home-base card: where we sleep tonight + one-tap "take me back". */
 export default function HotelCard({ compact = false }: { compact?: boolean }) {
-  const { hotel, location, navigateTo } = useApp();
+  const { hotel, location } = useApp();
 
   if (!hotel)
     return (
@@ -47,9 +48,7 @@ export default function HotelCard({ compact = false }: { compact?: boolean }) {
         )}
       </div>
       <div className="actions">
-        <button className="btn btn-waze" onClick={() => navigateTo(hotel.lat, hotel.lng, hotel.name)}>
-          🏠 חזרה למלון
-        </button>
+        <NavButtons lat={hotel.lat} lng={hotel.lng} name={hotel.name} placeId={hotel.place_id} wazeLabel="חזרה למלון" />
         {hotel.phone && (
           <a className="btn btn-ghost" href={`tel:${hotel.phone}`}>
             📞 התקשר

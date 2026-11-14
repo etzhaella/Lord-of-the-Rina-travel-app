@@ -16,7 +16,19 @@ import httpx
 from .geo import haversine_km
 from .schemas import Place
 
-GOOGLE_KEY = os.getenv("GOOGLE_PLACES_API_KEY", "").strip()
+KEY_VARS = ("GOOGLE_PLACES_API_KEY", "GOOGLE_MAPS_API_KEY", "GOOGLE_API_KEY", "PLACES_API_KEY")
+
+
+def _read_key() -> tuple[str, str | None]:
+    """First non-empty key among the accepted variable names (quotes/whitespace stripped)."""
+    for name in KEY_VARS:
+        value = os.getenv(name, "").strip().strip('"').strip("'").strip()
+        if value:
+            return value, name
+    return "", None
+
+
+GOOGLE_KEY, KEY_SOURCE = _read_key()
 LANGUAGE = os.getenv("PLACES_LANGUAGE", "en")
 BASE = "https://places.googleapis.com/v1"
 
@@ -56,6 +68,47 @@ CATEGORY_CONFIG: dict[str, dict] = {
 }
 
 MOCK = not GOOGLE_KEY
+
+
+async def check_key() -> dict:
+    """Live check of the key against Places API (New). Never returns the key itself."""
+    if MOCK:
+        return {
+            "ok": False,
+            "mode": "demo",
+            "reason": "No key reached the server. Set one of these environment variables and restart the backend.",
+            "accepted_variables": list(KEY_VARS),
+        }
+    body = {"textQuery": "Colmar Christmas market", "pageSize": 1}
+    headers = {**_headers(), "X-Goog-FieldMask": "places.id,places.displayName"}
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.post(f"{BASE}/places:searchText", json=body, headers=headers)
+    except httpx.HTTPError as e:
+        return {"ok": False, "mode": "live", "key_variable": KEY_SOURCE, "reason": f"network error: {e}"}
+    if r.status_code == 200:
+        found = (r.json().get("places") or [{}])[0].get("displayName", {}).get("text")
+        return {"ok": True, "mode": "live", "key_variable": KEY_SOURCE, "sample_result": found}
+    try:
+        err = r.json().get("error", {})
+        msg = err.get("message", r.text[:300])
+        status = err.get("status")
+    except ValueError:
+        msg, status = r.text[:300], None
+    hint = {
+        "PERMISSION_DENIED": "Enable 'Places API (New)' in the key's project, and check the key's API restrictions allow it.",
+        "INVALID_ARGUMENT": "The key looks invalid - copy it again (starts with AIza).",
+        "RESOURCE_EXHAUSTED": "Quota exceeded or billing not enabled on the project.",
+    }.get(status or "", "See the message from Google.")
+    return {
+        "ok": False,
+        "mode": "live",
+        "key_variable": KEY_SOURCE,
+        "http_status": r.status_code,
+        "google_status": status,
+        "google_message": msg,
+        "hint": hint,
+    }
 
 
 def _headers() -> dict:

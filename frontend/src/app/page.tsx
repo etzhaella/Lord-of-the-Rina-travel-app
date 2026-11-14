@@ -8,6 +8,7 @@ import LocationStrip from "@/components/LocationStrip";
 import { BottomNav, TopBar } from "@/components/Shell";
 import { CATEGORIES, subEmoji } from "@/lib/categories";
 import { distanceKm, formatDistance } from "@/lib/geo";
+import { googleMapsUrl } from "@/lib/navigate";
 
 const FACADE: Record<string, string> = {
   food: "facade-salmon",
@@ -83,9 +84,20 @@ export default function Home() {
                       {d.planned_date ? ` · ${new Date(d.planned_date + "T00:00:00").toLocaleDateString("he-IL")}` : ""}
                     </small>
                   </div>
-                  <button className="btn btn-waze sm" onClick={() => navigateTo(d.lat, d.lng, d.name)}>
-                    Waze
-                  </button>
+                  <div className="mini-nav">
+                    <button className="btn btn-waze sm" onClick={() => navigateTo(d.lat, d.lng, d.name)}>
+                      Waze
+                    </button>
+                    <a
+                      className="btn btn-gmaps sm"
+                      href={googleMapsUrl(d.lat, d.lng, d.place_id)}
+                      target="_blank"
+                      rel="noopener"
+                      aria-label={`Google Maps: ${d.name}`}
+                    >
+                      🗺️
+                    </a>
+                  </div>
                 </li>
               ))}
             </ul>

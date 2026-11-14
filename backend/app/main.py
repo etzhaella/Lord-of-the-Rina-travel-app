@@ -95,6 +95,7 @@ def health():
 def config():
     return {
         "mock": places.MOCK,
+        "places_key_variable": places.KEY_SOURCE,
         "expense_categories": EXPENSE_CATEGORIES,
         "default_currency": os.getenv("DEFAULT_CURRENCY", "EUR"),
     }
@@ -128,6 +129,12 @@ async def places_nearby(
     else:
         result.sort(key=lambda p: p.distance_km or 0)
     return result
+
+
+@app.get("/api/places/check")
+async def places_check():
+    """Diagnostics: is a Google key loaded, and does Google accept it?"""
+    return await places.check_key()
 
 
 @app.get("/api/places/search", response_model=list[Place])

@@ -8,11 +8,32 @@ export const dynamic = "force-dynamic";
 const BACKEND = process.env.BACKEND_URL || "http://localhost:8000";
 const DROP = ["content-encoding", "content-length", "transfer-encoding", "connection"];
 
+// Cloud Run blocks public access (organization policy). The frontend calls the
+// backend with an identity token from the metadata server. Locally that server
+// does not exist, so the call stays unauthenticated.
+async function cloudRunAuth(audience: string): Promise<Record<string, string>> {
+  if (!audience.startsWith("https://")) return {};
+  try {
+    const res = await fetch(
+      `http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity?audience=${encodeURIComponent(audience)}`,
+      { headers: { "Metadata-Flavor": "Google" }, cache: "no-store" },
+    );
+    if (!res.ok) return {};
+    return { authorization: `Bearer ${await res.text()}` };
+  } catch {
+    return {};
+  }
+}
+
 async function proxy(req: NextRequest, { params }: { params: { path: string[] } }) {
   const url = `${BACKEND}/api/${params.path.join("/")}${req.nextUrl.search}`;
+  const audience = new URL(BACKEND).origin;
   const init: RequestInit = {
     method: req.method,
-    headers: { "content-type": req.headers.get("content-type") || "application/json" },
+    headers: {
+      "content-type": req.headers.get("content-type") || "application/json",
+      ...(await cloudRunAuth(audience)),
+    },
     redirect: "manual",
     cache: "no-store",
   };

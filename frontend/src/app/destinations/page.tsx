@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useApp } from "@/components/AppProvider";
 import { Photo } from "@/components/PlaceCard";
+import NavButtons from "@/components/NavButtons";
 import PlaceSearch from "@/components/PlaceSearch";
 import { BottomNav, OriginToggle, TopBar } from "@/components/Shell";
 import { api } from "@/lib/api";
@@ -113,9 +114,7 @@ export default function DestinationsPage() {
         )}
 
         <div className="actions">
-          <button className="btn btn-waze sm" onClick={() => navigateTo(d.lat, d.lng, d.name)}>
-            🚗 Waze
-          </button>
+          <NavButtons lat={d.lat} lng={d.lng} name={d.name} placeId={d.place_id} small />
           <button className="btn btn-ghost sm" onClick={() => patch(d.id, { visited: !d.visited })}>
             {d.visited ? "↩️ להחזיר" : "✅ ביקרנו"}
           </button>

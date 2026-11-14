@@ -1567,3 +1567,19 @@ button.icon-btn:hover {
 .search-results .muted {
   unicode-bidi: plaintext;
 }
+
+/* Google Maps button: white with Google-blue outline, next to Waze */
+.btn-gmaps {
+  background: #fff;
+  color: #1a5fd0;
+  border: 1.5px solid #9dbcf2;
+}
+
+.btn-gmaps:hover {
+  background: #eef4ff;
+}
+
+.mini-nav {
+  display: flex;
+  gap: 6px;
+}
