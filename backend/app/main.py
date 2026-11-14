@@ -15,8 +15,8 @@ from sqlalchemy.orm import Session
 
 from . import places
 from .db import Base, SessionLocal, engine, get_db
-from .seed import load_trip_plan, refine_locations
-from .models import Destination, Expense, Favorite, Hotel, Member
+from .seed import fix_hotel_location, load_trip_plan, refine_locations
+from .models import Destination, Expense, Favorite, HomeAddress, Hotel, Member
 from .schemas import (
     EXPENSE_CATEGORIES,
     DestinationIn,
@@ -27,6 +27,9 @@ from .schemas import (
     ExpensePatch,
     ExpenseSummary,
     FavoriteIn,
+    HomeAddressIn,
+    HomeAddressOut,
+    HomeAddressPatch,
     FavoriteOut,
     HotelIn,
     HotelOut,
@@ -76,6 +79,7 @@ def startup() -> None:
             db.add_all(Member(name=n, emoji=e, color=c) for n, e, c in DEFAULT_MEMBERS)
             db.commit()
     load_trip_plan()
+    fix_hotel_location()
     log.info("ready. demo mode=%s", places.MOCK)
 
 
@@ -314,6 +318,37 @@ def reorder_destinations(body: ReorderIn, db: Session = Depends(get_db)):
 def delete_destination(did: int, db: Session = Depends(get_db)):
     d = db.get(Destination, did) or _404()
     db.delete(d)
+    db.commit()
+
+
+# ------------------------------------------------------------------ home in Israel
+@app.get("/api/home-addresses", response_model=list[HomeAddressOut])
+def list_home_addresses(db: Session = Depends(get_db)):
+    return db.scalars(select(HomeAddress).order_by(HomeAddress.sort_order, HomeAddress.id)).all()
+
+
+@app.post("/api/home-addresses", response_model=HomeAddressOut, status_code=201)
+def add_home_address(body: HomeAddressIn, db: Session = Depends(get_db)):
+    last = db.scalar(select(HomeAddress.sort_order).order_by(HomeAddress.sort_order.desc()).limit(1))
+    h = HomeAddress(**body.model_dump(), sort_order=(last or 0) + 1)
+    db.add(h)
+    db.commit()
+    return h
+
+
+@app.patch("/api/home-addresses/{hid}", response_model=HomeAddressOut)
+def edit_home_address(hid: int, body: HomeAddressPatch, db: Session = Depends(get_db)):
+    h = db.get(HomeAddress, hid) or _404()
+    for k, v in body.model_dump(exclude_unset=True).items():
+        setattr(h, k, v)
+    db.commit()
+    return h
+
+
+@app.delete("/api/home-addresses/{hid}", status_code=204)
+def delete_home_address(hid: int, db: Session = Depends(get_db)):
+    h = db.get(HomeAddress, hid) or _404()
+    db.delete(h)
     db.commit()
 
 

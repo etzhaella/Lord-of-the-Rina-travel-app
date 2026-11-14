@@ -145,6 +145,36 @@ class ReorderIn(BaseModel):
     ids: list[int]
 
 
+# ---------- Home addresses (Israel) ----------
+class HomeAddressIn(BaseModel):
+    label: str = Field(min_length=1, max_length=120)
+    address: str = Field(min_length=2, max_length=500)
+    lat: float | None = None
+    lng: float | None = None
+    place_id: str | None = None
+    notes: str | None = None
+
+
+class HomeAddressPatch(BaseModel):
+    label: str | None = None
+    address: str | None = None
+    lat: float | None = None
+    lng: float | None = None
+    place_id: str | None = None
+    notes: str | None = None
+
+
+class HomeAddressOut(ORM):
+    id: int
+    label: str
+    address: str
+    lat: float | None
+    lng: float | None
+    place_id: str | None
+    notes: str | None
+    sort_order: int
+
+
 # ---------- Expenses ----------
 EXPENSE_CATEGORIES = ["food", "transport", "lodging", "attractions", "shopping", "other"]
 

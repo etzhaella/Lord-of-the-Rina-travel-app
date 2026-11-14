@@ -83,3 +83,14 @@ export type ExpenseSummary = {
 };
 
 export type AppConfig = { mock: boolean; expense_categories: string[]; default_currency: string };
+
+export type HomeAddress = {
+  id: number;
+  label: string;
+  address: string;
+  lat?: number | null;
+  lng?: number | null;
+  place_id?: string | null;
+  notes?: string | null;
+  sort_order: number;
+};

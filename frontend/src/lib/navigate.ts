@@ -9,7 +9,7 @@ export const wazeWebUrl = (lat: number, lng: number) =>
  */
 export const googleMapsUrl = (lat: number, lng: number, placeId?: string | null) => {
   let url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-  if (placeId && !placeId.startsWith("demo-")) url += `&destination_place_id=${encodeURIComponent(placeId)}`;
+  if (placeId && !placeId.startsWith("demo-") && !placeId.startsWith("manual-")) url += `&destination_place_id=${encodeURIComponent(placeId)}`;
   return url;
 };
 
@@ -60,3 +60,10 @@ export function openInWaze(lat: number, lng: number, onFallback: () => void) {
     if (!leftPage && !document.hidden) onFallback();
   }, 1600);
 }
+
+/** Navigation by address text, for places saved without coordinates. */
+export const wazeAddressUrl = (address: string) =>
+  `https://waze.com/ul?q=${encodeURIComponent(address)}&navigate=yes`;
+
+export const googleMapsAddressUrl = (address: string) =>
+  `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`;

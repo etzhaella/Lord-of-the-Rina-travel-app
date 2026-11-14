@@ -93,6 +93,22 @@ class Expense(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 
+class HomeAddress(Base):
+    """Our addresses back home in Israel (shared by the family)."""
+
+    __tablename__ = "home_addresses"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    label: Mapped[str] = mapped_column(String(120))
+    address: Mapped[str] = mapped_column(String(500))
+    lat: Mapped[float | None] = mapped_column(Float, nullable=True)
+    lng: Mapped[float | None] = mapped_column(Float, nullable=True)
+    place_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
 class Destination(Base):
     """A place the family chose to visit on this trip (shared by everyone)."""
 

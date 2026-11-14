@@ -10,10 +10,11 @@ const NAV = [
   { href: "/hotel", label: "מלון", icon: "🏨" },
   { href: "/expenses", label: "הוצאות", icon: "💳" },
   { href: "/family", label: "משפחה", icon: "👨‍👩‍👧" },
+  { href: "/israel", label: "בית בישראל", icon: "🇮🇱" },
 ];
 
 export function TopBar({ title, back }: { title?: string; back?: string }) {
-  const { member, config } = useApp();
+  const { member } = useApp();
   return (
     <>
       <header className="topbar">
@@ -41,7 +42,6 @@ export function TopBar({ title, back }: { title?: string; back?: string }) {
         </Link>
       </header>
       <div className="garland" aria-hidden />
-      {config?.mock && <div className="demo-banner">מצב הדגמה – אין מפתח Google Places, מוצגים מקומות לדוגמה</div>}
     </>
   );
 }

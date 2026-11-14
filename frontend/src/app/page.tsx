@@ -104,6 +104,15 @@ export default function Home() {
           )}
         </section>
 
+        <Link href="/israel" className="israel-button">
+          <span className="israel-flag">🇮🇱</span>
+          <span className="grow">
+            <strong>הבית שלנו בישראל</strong>
+            <small>הכתובות שלנו בארץ, עם ניווט בלחיצה</small>
+          </span>
+          <span className="chev">‹</span>
+        </Link>
+
         <footer className="dedication">
           <span className="ornament" aria-hidden>
             ❄ ✦ ❄

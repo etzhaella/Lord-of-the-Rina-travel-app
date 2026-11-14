@@ -1371,7 +1371,7 @@ button.icon-btn:hover {
   max-width: 560px;
   z-index: 30;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   height: calc(var(--nav-h) + var(--safe-b));
   padding-bottom: var(--safe-b);
   background: rgba(255, 250, 243, 0.95);
@@ -1582,4 +1582,48 @@ button.icon-btn:hover {
 .mini-nav {
   display: flex;
   gap: 6px;
+}
+
+/* ------------------------------------------------------------ home in Israel */
+.israel-button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #ffffff, #eaf2ff);
+  border: 2px solid #0038b8;
+  box-shadow: var(--shadow);
+  color: #0b2a6f;
+}
+
+.israel-button strong {
+  display: block;
+  font-family: "Suez One", "Frank Ruhl Libre", serif;
+  font-weight: 400;
+  font-size: 19px;
+}
+
+.israel-button small {
+  color: #47608f;
+  font-size: 13px;
+}
+
+.israel-flag {
+  font-size: 34px;
+}
+
+.home-il {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.home-il .addr-line {
+  unicode-bidi: plaintext;
+}
+
+.bottomnav a small {
+  white-space: nowrap;
+  font-size: 10.5px;
 }

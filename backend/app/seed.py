@@ -62,6 +62,39 @@ def load_trip_plan() -> None:
         log.info("trip plan loaded")
 
 
+HOTEL_FIX_KEY = "hotel_fix_v2"
+HOTEL = {
+    "name": "Hôtel Maison Turenne",
+    "address": "Hotel Turenne, 10 Rte de Bâle, 68000 Colmar, France",
+    # official coordinates (France Vélo Tourisme / Alsace tourism data)
+    "lat": 48.07187547,
+    "lng": 7.36061587,
+}
+
+
+def fix_hotel_location() -> None:
+    """One-time correction of the hotel's address/coordinates in existing databases."""
+    with SessionLocal() as db:
+        if db.get(AppMeta, HOTEL_FIX_KEY):
+            return
+        hotels = db.scalars(select(Hotel)).all()
+        target = next((h for h in hotels if "turenne" in h.name.lower()), None)
+        if target is None:
+            target = next((h for h in hotels if h.is_active), None)
+        if target is None:
+            target = Hotel(is_active=True, check_in=date(2026, 11, 25), check_out=date(2026, 11, 29))
+            db.add(target)
+        target.name = HOTEL["name"]
+        target.address = HOTEL["address"]
+        target.lat = HOTEL["lat"]
+        target.lng = HOTEL["lng"]
+        # pinned manually: keep refine_locations() from moving it again
+        target.place_id = "manual-hotel-turenne"
+        db.add(AppMeta(key=HOTEL_FIX_KEY, value="done"))
+        db.commit()
+        log.info("hotel location corrected")
+
+
 async def refine_locations() -> None:
     """With a Google key: snap places without a place_id to their exact Google location."""
     if places.MOCK:
