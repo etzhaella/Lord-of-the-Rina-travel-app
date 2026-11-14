@@ -1,5 +1,14 @@
+# secrets / local config
 .env
-node_modules
-.next
-__pycache__
+.env.*
+!.env.example
+
+# archives
+*.zip
+
+# dependencies & build output
+node_modules/
+.next/
+__pycache__/
 *.pyc
+.venv/

@@ -1,25 +1,43 @@
-# CI/CD: every push to main -> build both images -> deploy to Cloud Run.
-# Hook it up once with a Cloud Build trigger (see README-APP.md, "פריסה אוטומטית מהריפו").
-# Manual run from the project folder:  gcloud builds submit --config cloudbuild.yaml
+# CI/CD for Lord of the Rina: every push to main -> build 2 images -> deploy 2 Cloud Run services.
+#
+#   rina-backend   FastAPI (API + Postgres + Google Places proxy)
+#   rina-frontend  Next.js server  <-- this is the website people open; it proxies /api/* to rina-backend
+#
+# Secrets (Secret Manager, never plain env vars):
+#   db-url      required  Postgres connection string            -> DATABASE_URL
+#   places-key  optional  Google Places API key (absent = demo)   -> GOOGLE_PLACES_API_KEY
+#
+# The trigger runs with a custom service account, so CLOUD_LOGGING_ONLY is required.
+# Manual run (from the repo root):
+#   gcloud builds submit --config cloudbuild.yaml --substitutions=COMMIT_SHA=manual-$(date +%s)
 
 substitutions:
   _REGION: europe-west1
-  _REPO: rina
+  _AR: europe-west1-docker.pkg.dev/${PROJECT_ID}/rina
 
 options:
   logging: CLOUD_LOGGING_ONLY
+  dynamicSubstitutions: true
 
 steps:
-  # ---------------- backend
+  # ---------------------------------------------------------------- backend
   - id: build-backend
     name: gcr.io/cloud-builders/docker
     waitFor: ["-"]
-    args: ["build", "-t", "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/backend:$BUILD_ID", "./backend"]
+    args:
+      - build
+      - -t
+      - ${_AR}/backend:${COMMIT_SHA}
+      - -t
+      - ${_AR}/backend:latest
+      - -f
+      - backend/Dockerfile
+      - backend
 
   - id: push-backend
     name: gcr.io/cloud-builders/docker
     waitFor: ["build-backend"]
-    args: ["push", "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/backend:$BUILD_ID"]
+    args: ["push", "--all-tags", "${_AR}/backend"]
 
   - id: deploy-backend
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
@@ -28,35 +46,48 @@ steps:
     args:
       - -c
       - |
-        set -e
-        secrets="DATABASE_URL=db-url:latest"
-        if gcloud secrets describe places-key >/dev/null 2>&1; then
-          secrets="$$secrets,GOOGLE_PLACES_API_KEY=places-key:latest"
-          echo "Google Places key found"
+        set -euo pipefail
+        SECRETS="DATABASE_URL=db-url:latest"
+        if gcloud secrets describe places-key --project "${PROJECT_ID}" >/dev/null 2>&1; then
+          SECRETS="$${SECRETS},GOOGLE_PLACES_API_KEY=places-key:latest"
+          echo "places-key found -> real Google Places data"
         else
-          echo "No Google Places key yet - demo mode"
+          echo "places-key not found -> demo mode"
         fi
         gcloud run deploy rina-backend \
-          --image ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/backend:$BUILD_ID \
-          --region ${_REGION} \
+          --project "${PROJECT_ID}" \
+          --region "${_REGION}" \
+          --image "${_AR}/backend:${COMMIT_SHA}" \
           --allow-unauthenticated \
-          --set-secrets "$$secrets" \
-          --set-env-vars DEFAULT_CURRENCY=EUR,PLACES_LANGUAGE=en \
+          --port 8080 \
           --memory 512Mi \
+          --set-secrets "$${SECRETS}" \
+          --set-env-vars "DEFAULT_CURRENCY=EUR,PLACES_LANGUAGE=en" \
           --quiet
-        gcloud run services describe rina-backend --region ${_REGION} --format='value(status.url)' > /workspace/backend_url
-        echo "Backend: $$(cat /workspace/backend_url)"
+        gcloud run services describe rina-backend --project "${PROJECT_ID}" --region "${_REGION}" \
+          --format='value(status.url)' > /workspace/backend_url
+        echo "backend: $$(cat /workspace/backend_url)"
 
-  # ---------------- frontend (builds in parallel with the backend)
+  # ---------------------------------------------------------------- frontend (built in parallel)
   - id: build-frontend
     name: gcr.io/cloud-builders/docker
     waitFor: ["-"]
-    args: ["build", "-t", "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/frontend:$BUILD_ID", "./frontend"]
+    args:
+      - build
+      - --target
+      - runner
+      - -t
+      - ${_AR}/frontend:${COMMIT_SHA}
+      - -t
+      - ${_AR}/frontend:latest
+      - -f
+      - frontend/Dockerfile
+      - frontend
 
   - id: push-frontend
     name: gcr.io/cloud-builders/docker
     waitFor: ["build-frontend"]
-    args: ["push", "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/frontend:$BUILD_ID"]
+    args: ["push", "--all-tags", "${_AR}/frontend"]
 
   - id: deploy-frontend
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
@@ -65,18 +96,22 @@ steps:
     args:
       - -c
       - |
-        set -e
+        set -euo pipefail
         gcloud run deploy rina-frontend \
-          --image ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/frontend:$BUILD_ID \
-          --region ${_REGION} \
+          --project "${PROJECT_ID}" \
+          --region "${_REGION}" \
+          --image "${_AR}/frontend:${COMMIT_SHA}" \
           --allow-unauthenticated \
-          --set-env-vars "BACKEND_URL=$$(cat /workspace/backend_url)" \
+          --port 8080 \
           --memory 512Mi \
+          --set-env-vars "BACKEND_URL=$$(cat /workspace/backend_url)" \
           --quiet
-        echo "App: $$(gcloud run services describe rina-frontend --region ${_REGION} --format='value(status.url)')"
+        echo "WEBSITE: $$(gcloud run services describe rina-frontend --project "${PROJECT_ID}" --region "${_REGION}" --format='value(status.url)')"
 
 images:
-  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/backend:$BUILD_ID
-  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/frontend:$BUILD_ID
+  - ${_AR}/backend:${COMMIT_SHA}
+  - ${_AR}/backend:latest
+  - ${_AR}/frontend:${COMMIT_SHA}
+  - ${_AR}/frontend:latest
 
 timeout: 1800s

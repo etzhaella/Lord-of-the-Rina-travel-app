@@ -52,28 +52,66 @@ browser ──► Next.js 14 (TypeScript)  ──/api/* proxy──►  FastAPI 
 ## Google Places API
 ב-Google Cloud Console מפעילים את **Places API (New)**, יוצרים API key ומגבילים אותו ל-Places API.
 
-## פריסה לאוויר (Google Cloud Run + Neon, בחינם)
+## פריסה ל-Google Cloud Run (אוטומטית מהריפו)
 
-**הכנה (פעם אחת):**
-1. מתקינים את [Google Cloud CLI](https://cloud.google.com/sdk/docs/install), ואז ב-PowerShell:
-   `gcloud auth login`
-2. ב-[console.cloud.google.com](https://console.cloud.google.com) יוצרים פרויקט ומחברים אליו חיוב (Billing), ואז:
-   `gcloud config set project <PROJECT_ID>`
-3. ב-[neon.tech](https://neon.tech) נרשמים, יוצרים פרויקט ומעתיקים את ה-Connection string (`postgresql://...`).
+**שני שירותים ב-Cloud Run (`europe-west1`, פרויקט `lord-of-the-rina-travel-app`):**
 
-**הרצה מתיקיית הפרויקט ב-PowerShell:**
+| שירות | מה הוא | פתוח לציבור |
+|---|---|---|
+| **`rina-frontend`** | שרת Next.js. **זה האתר.** מעביר כל `/api/*` אל ה-backend | כן, כאן מחברים את הסאב-דומיין |
+| `rina-backend` | FastAPI: נתונים (Postgres), חיפוש Google Places, תמונות | כן (ה-frontend קורא אליו) |
+
+כל `git push` ל-`main` מפעיל את הטריגר ב-Cloud Build, שמריץ את `cloudbuild.yaml`:
+1. בונה במקביל `backend` ו-`frontend` ומתייג `:<COMMIT_SHA>` וגם `:latest`.
+2. דוחף אל `europe-west1-docker.pkg.dev/lord-of-the-rina-travel-app/rina/`.
+3. מעלה את `rina-backend` עם הסודות מ-Secret Manager.
+4. מעלה את `rina-frontend` עם `BACKEND_URL` שמצביע על ה-backend.
+
+בסוף הלוג (שלב `deploy-frontend`) מודפס `WEBSITE: https://...`.
+
+### סודות (Secret Manager)
+| Secret | חובה | נכנס כ- | תוכן |
+|---|---|---|---|
+| `db-url` | כן | `DATABASE_URL` | Connection string של Postgres (למשל Neon: `postgresql://...?...sslmode=require`) |
+| `places-key` | לא | `GOOGLE_PLACES_API_KEY` | מפתח Places API (New). בלעדיו האתר עולה במצב הדגמה |
+
 ```powershell
-powershell -ExecutionPolicy Bypass -File deploy\1-setup.ps1            # פעם אחת: מפעיל שירותים ושומר את מחרוזת ה-DB
-powershell -ExecutionPolicy Bypass -File deploy\2-deploy.ps1           # מעלה לאוויר; מריצים שוב אחרי כל שינוי
-powershell -ExecutionPolicy Bypass -File deploy\3-add-google-key.ps1   # כשיש מפתח Google, מחבר אותו בלי פריסה מחדש
+# יצירה (פעם אחת). הערך נכתב לקובץ זמני ולא מופיע בהיסטוריית הפקודות
+$p = "lord-of-the-rina-travel-app"
+Read-Host "DB connection string" | Set-Content -NoNewline db.tmp
+gcloud secrets create db-url --data-file=db.tmp --replication-policy=automatic --project $p
+Remove-Item db.tmp
+
+Read-Host "Google Places key" | Set-Content -NoNewline key.tmp
+gcloud secrets create places-key --data-file=key.tmp --replication-policy=automatic --project $p
+Remove-Item key.tmp
+
+# עדכון ערך קיים: אותו דבר עם  gcloud secrets versions add <name> --data-file=...
 ```
-### פריסה אוטומטית מהריפו (מומלץ)
-כל `git push` ל-`main` בונה את האפליקציה ומעלה אותה לאוויר לבד, לפי `cloudbuild.yaml`.
+ה-service account של Cloud Run (`572829443523-compute@developer.gserviceaccount.com`) צריך `roles/secretmanager.secretAccessor`.
+אחרי הוספת `places-key` מריצים שוב את הטריגר (או `git push`), והאפליקציה עוברת לנתונים אמיתיים.
 
-1. פעם אחת: `powershell -ExecutionPolicy Bypass -File deploy\4-setup-cicd.ps1` (אחרי `1-setup`)
-2. ב-Console: **Cloud Build → Triggers → Connect repository** ובוחרים GitHub ואת הריפו.
-3. **Create trigger:** שם `deploy-main`, אזור `europe-west1`, Event: *Push to a branch*, Branch: `^main$`,
-   Configuration: *Cloud Build configuration file*, נתיב `cloudbuild.yaml`, ו-Service account: ה-Compute default.
-4. **Run** על הטריגר (או `git push`). הלוג נמצא ב-Cloud Build → History, ובסוף שלב `deploy-frontend` מודפסת הכתובת.
+### בדיקה מקומית של אימג׳י הפרודקשן
+```powershell
+docker build -t rina-backend  -f backend/Dockerfile  backend
+docker build -t rina-frontend --target runner -f frontend/Dockerfile frontend
 
-בסוף `2-deploy` מודפסת הכתובת של האפליקציה (`https://rina-frontend-....run.app`). פותחים אותה בטלפון ומוסיפים למסך הבית.
+docker network create rina-net
+docker run -d --name rina-db  --network rina-net -e POSTGRES_USER=rina -e POSTGRES_PASSWORD=rina -e POSTGRES_DB=rina postgres:16-alpine
+docker run -d --name rina-api --network rina-net -e PORT=8080 -e DATABASE_URL=postgresql://rina:rina@rina-db:5432/rina -p 8081:8080 rina-backend
+docker run -d --name rina-web --network rina-net -e PORT=8080 -e BACKEND_URL=http://rina-api:8080 -p 8080:8080 rina-frontend
+```
+- האתר: http://localhost:8080
+- ה-API: http://localhost:8081/api/health
+
+ניקוי: `docker rm -f rina-web rina-api rina-db; docker network rm rina-net`
+
+### סאב-דומיין
+```powershell
+gcloud beta run domain-mappings create --service=rina-frontend --domain=thehaleysincolmar.etzhaella.com --region=europe-west1 --project=lord-of-the-rina-travel-app
+```
+אצל ספק ה-DNS של `etzhaella.com` מוסיפים: **CNAME**, שם `thehaleysincolmar`, ערך `ghs.googlehosted.com.`
+התעודה (HTTPS) מונפקת לבד, אחרי 15 דקות עד כמה שעות.
+
+### פריסה ידנית (חלופה)
+הסקריפטים ב-`deploy/` (`1-setup.ps1`, `2-deploy.ps1`, `3-add-google-key.ps1`) עדיין עובדים לפריסה ידנית מהמחשב.

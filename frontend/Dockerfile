@@ -24,15 +24,15 @@ RUN npm run build
 # ---------- runtime (Cloud Run)
 FROM node:20-alpine AS runner
 WORKDIR /app
+# Cloud Run injects $PORT (8080); the standalone server.js reads PORT + HOSTNAME
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
-    PORT=3000 \
+    PORT=8080 \
     HOSTNAME=0.0.0.0
 RUN addgroup -S app && adduser -S app -G app
 COPY --from=build /app/public ./public
 COPY --from=build --chown=app:app /app/.next/standalone ./
 COPY --from=build --chown=app:app /app/.next/static ./.next/static
 USER app
-EXPOSE 3000
-# Cloud Run injects $PORT; standalone server.js honours it
+EXPOSE 8080
 CMD ["node", "server.js"]
