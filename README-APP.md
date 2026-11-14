@@ -69,6 +69,13 @@ browser ──► Next.js 14 (TypeScript)  ──/api/* proxy──►  FastAPI 
 
 בסוף הלוג (שלב `deploy-frontend`) מודפס `WEBSITE: https://...`.
 
+### יצירת הטריגר (הסוג הנכון)
+השגיאה `lstat /workspace/Dockerfile: no such file or directory` אומרת שהטריגר מוגדר כ-*Dockerfile/Autodetected/Inline*. הטריגר הנכון מריץ את `cloudbuild.yaml`:
+```powershell
+powershell -ExecutionPolicy Bypass -File deploy\5-create-trigger.ps1
+```
+הסקריפט מציג את הטריגרים הקיימים (כדי לזהות ולכבות את הישן) ויוצר את `deploy-main`. תנאי מוקדם: חיבור הריפו פעם אחת ב-Console (*Cloud Build → Triggers → Connect repository*).
+
 ### סודות (Secret Manager)
 | Secret | חובה | נכנס כ- | תוכן |
 |---|---|---|---|

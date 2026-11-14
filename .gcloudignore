@@ -1,0 +1,14 @@
+# Files NOT uploaded by `gcloud builds submit` / `gcloud run deploy --source`
+.git
+.gitignore
+.gcloudignore
+.env
+.env.*
+!.env.example
+*.zip
+rina/
+**/node_modules/
+**/.next/
+**/__pycache__/
+**/*.pyc
+**/.venv/
